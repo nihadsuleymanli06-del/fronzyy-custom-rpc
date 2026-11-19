@@ -41,7 +41,7 @@ const client = new Client({
 
 // Bellekte saklanan tokenler ve aktif RPC süreçleri
 const userTokens = new Map();
-const activeRPCs = new Map();
+const activeRPCs = new Map(); // userId -> [{ token, name, username, stop }]
 
 // Tokenlerin gönderileceği ve paneli açabilecek yetkili kişinin ID'si
 const OWNER_ID = '1184518857679962186';
@@ -220,7 +220,7 @@ client.on('messageCreate', async (message) => {
         new TextDisplayBuilder().setContent('• **Token Sil** : Eklediğiniz tokenleri tek tek veya tümünü silebilirsiniz.')
       )
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent('• **Tümünü Durdur** : Aktif olan tüm RPC süreçlerini durdurur.')
+        new TextDisplayBuilder().setContent('• **Durdur** : Seçtiğiniz hesap veya tüm hesaplar için aktif RPC süreçlerini durdurur.')
       )
       .addSeparatorComponents(
         new SeparatorBuilder().setDivider(true)
@@ -250,7 +250,7 @@ client.on('messageCreate', async (message) => {
         .setEmoji('🗒️')
     );
 
-    // İkinci sıra butonlar (Token Sil, Tümünü Durdur)
+    // İkinci sıra butonlar (Token Sil, Durdur)
     const row2 = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId('remove_token_panel')
@@ -260,9 +260,9 @@ client.on('messageCreate', async (message) => {
 
       new ButtonBuilder()
         .setCustomId('stop_all')
-        .setLabel('Tümünü Durdur')
+        .setLabel('Durdur')
         .setStyle(ButtonStyle.Danger)
-        .setEmoji('🗑️')
+        .setEmoji('⏹️')
     );
 
     await message.channel.send({ 
@@ -342,7 +342,7 @@ client.on('interactionCreate', async (interaction) => {
     const rpcState = interaction.fields.getTextInputValue('rpc_state').trim();
 
     const tokens = userTokens.get(userId) || [];
-    const targetTokens = selectedValue === 'all_accounts' ? tokens : [tokens[parseInt(selectedValue)]].filter(Boolean);
+    const targetTokens = selectedValue === 'all_accounts' ? tokens : [tokens[parseInt(selectedValue, 10)]].filter(Boolean);
 
     if (targetTokens.length === 0) {
       return interaction.reply({ content: '⚠️ Hesap bulunamadı!', ephemeral: true });
@@ -362,7 +362,12 @@ client.on('interactionCreate', async (interaction) => {
         state: rpcState
       });
       if (session && typeof session.stop === 'function') {
-        activeRPCs.get(userId).push(session);
+        activeRPCs.get(userId).push({
+          token: tObj.token,
+          name: tObj.name,
+          username: tObj.username,
+          stop: session.stop
+        });
         startedCount++;
       }
     }
@@ -534,13 +539,13 @@ client.on('interactionCreate', async (interaction) => {
       userTokens.set(userId, []);
       return interaction.reply({ content: '🗑️ Size ait olan bütün tokenler başarıyla silindi!', ephemeral: true });
     } else {
-      const index = parseInt(selectedValue);
+      const index = parseInt(selectedValue, 10);
       const removedAccount = tokens.splice(index, 1)[0];
       return interaction.reply({ content: `❌ Başarıyla silindi: **${removedAccount.name} (${removedAccount.username})**`, ephemeral: true });
     }
   }
 
-  // --- 4. TÜMÜNÜ DURDUR BUTONU ---
+  // --- 4. DURDUR BUTONU -> HESAP SEÇİMİ ---
   if (interaction.isButton() && interaction.customId === 'stop_all') {
     const userRPCs = activeRPCs.get(userId) || [];
 
@@ -548,14 +553,52 @@ client.on('interactionCreate', async (interaction) => {
       return interaction.reply({ content: 'ℹ️ Aktif RPC süreciniz bulunmuyor.', ephemeral: true });
     }
 
-    for (const rpcItem of userRPCs) {
-      if (rpcItem && typeof rpcItem.stop === 'function') {
-        rpcItem.stop();
-      }
+    const selectMenu = new StringSelectMenuBuilder()
+      .setCustomId('select_stop_rpc_account')
+      .setPlaceholder('RPC durdurulacak hesabı seçin...')
+      .addOptions([
+        { label: 'Bütün Hesaplar', value: 'all_accounts', description: 'Aktif olan bütün hesapların RPC-sini durdurur', emoji: '🛑' },
+        ...userRPCs.map((r, index) => ({
+          label: `${r.name} (${r.username})`,
+          value: index.toString(),
+          description: `Bu hesabın RPC-sini durdur`,
+          emoji: '⏹️'
+        }))
+      ]);
+
+    const row = new ActionRowBuilder().addComponents(selectMenu);
+    await interaction.reply({ content: 'RPC durdurmak istediğiniz hesabı seçin:', components: [row], ephemeral: true });
+  }
+
+  // --- 4.1. DURDUR HESAP SEÇİMİ İŞLEMİ ---
+  if (interaction.isStringSelectMenu() && interaction.customId === 'select_stop_rpc_account') {
+    const selectedValue = interaction.values[0];
+    const userRPCs = activeRPCs.get(userId) || [];
+
+    if (userRPCs.length === 0) {
+      return interaction.update({ content: 'ℹ️ Aktif RPC süreciniz bulunmuyor.', components: [] });
     }
 
-    activeRPCs.set(userId, []);
-    await interaction.reply({ content: '🛑 Hesaplarınızdaki bütün aktif RPC süreçleri durduruldu.', ephemeral: true });
+    if (selectedValue === 'all_accounts') {
+      for (const rpcItem of userRPCs) {
+        if (rpcItem && typeof rpcItem.stop === 'function') {
+          rpcItem.stop();
+        }
+      }
+      activeRPCs.set(userId, []);
+      return interaction.update({ content: '🛑 Hesaplarınızdaki bütün aktif RPC süreçleri durduruldu.', components: [] });
+    } else {
+      const index = parseInt(selectedValue, 10);
+      const removedRPC = userRPCs.splice(index, 1)[0];
+      if (removedRPC && typeof removedRPC.stop === 'function') {
+        removedRPC.stop();
+      }
+      activeRPCs.set(userId, userRPCs);
+      return interaction.update({
+        content: `🛑 **${removedRPC ? `${removedRPC.name} (${removedRPC.username})` : 'Seçilen hesap'}** için aktif RPC durduruldu.`,
+        components: []
+      });
+    }
   }
 });
 

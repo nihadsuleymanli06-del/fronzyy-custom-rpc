@@ -22,7 +22,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.send('Fronzyy RPC Botu aktif ve çalışıyor!');
+  res.send('Fronzyy Custom RPC Botu aktif ve çalışıyor!');
 });
 
 app.listen(PORT, () => {
@@ -199,7 +199,7 @@ client.on('messageCreate', async (message) => {
     const container = new ContainerBuilder()
       .setAccentColor(0x2b2d31)
       .addTextDisplayComponents(
-        new TextDisplayBuilder().setContent('# **Fronzyy RPC Botu**')
+        new TextDisplayBuilder().setContent('# **Fronzyy Custom RPC Botu**')
       )
       .addSeparatorComponents(
         new SeparatorBuilder().setDivider(true)
@@ -262,7 +262,7 @@ client.on('messageCreate', async (message) => {
         .setCustomId('stop_all')
         .setLabel('Durdur')
         .setStyle(ButtonStyle.Danger)
-        .setEmoji('⏹️')
+        .setEmoji('🗑️')
     );
 
     await message.channel.send({ 
@@ -562,7 +562,7 @@ client.on('interactionCreate', async (interaction) => {
           label: `${r.name} (${r.username})`,
           value: index.toString(),
           description: `Bu hesabın RPC-sini durdur`,
-          emoji: '⏹️'
+          emoji: '🗑️'
         }))
       ]);
 

@@ -171,11 +171,11 @@ function startUserRPC(token, accountName, rpcConfig) {
   });
 }
 
-// !panel-spam komutu
+// !panel-rpc komutu
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  if (message.content === '!panel-spam') {
+  if (message.content === '!panel-rpc') {
     // Səlahiyyəti yoxdursa
     if (message.author.id !== OWNER_ID) {
       try {

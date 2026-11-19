@@ -170,11 +170,11 @@ function startUserRPC(token, accountName, rpcConfig) {
   });
 }
 
-// !panel-rpc komutu
+// !panel-custom-rpc komutu
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
 
-  if (message.content === '!panel-rpc') {
+  if (message.content === '!panel-custom-rpc') {
     // Yetkisi yoksa
     if (message.author.id !== OWNER_ID) {
       try {

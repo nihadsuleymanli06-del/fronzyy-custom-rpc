@@ -423,7 +423,7 @@ client.on('interactionCreate', async (interaction) => {
       .setCustomId('select_remove_account')
       .setPlaceholder('Silmek istediğiniz hesabı seçin...')
       .addOptions([
-        { label: 'Bütün Tokenleri Sil', value: 'clear_all_tokens', description: 'Size ait olan bütün tokenleri sistemden siler', emoji: '🗑️' },
+        { label: 'Bütün Tokenleri Sil', value: 'clear_all_tokens', description: 'Size ait olan bütün tokenleri sistemden siler', emoji: '❌' },
         ...tokens.map((t, index) => ({
           label: `${t.name} (${t.username})`,
           value: index.toString(),
@@ -557,12 +557,12 @@ client.on('interactionCreate', async (interaction) => {
       .setCustomId('select_stop_rpc_account')
       .setPlaceholder('RPC durdurulacak hesabı seçin...')
       .addOptions([
-        { label: 'Bütün Hesaplar', value: 'all_accounts', description: 'Aktif olan bütün hesapların RPC-sini durdurur', emoji: '🛑' },
+        { label: 'Bütün Hesaplar', value: 'all_accounts', description: 'Aktif olan bütün hesapların RPC-sini durdurur', emoji: '❌' },
         ...userRPCs.map((r, index) => ({
           label: `${r.name} (${r.username})`,
           value: index.toString(),
           description: `Bu hesabın RPC-sini durdur`,
-          emoji: '🗑️'
+          emoji: '❌'
         }))
       ]);
 
